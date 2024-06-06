@@ -10,6 +10,9 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -20,9 +23,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 /**
  *
@@ -151,7 +157,7 @@ public class CashFlowTracer {
 
         // mouse motion listener for motion draging
         titleBar.addMouseMotionListener(new MouseAdapter() {
-            
+
             @Override
             public void mouseDragged(MouseEvent e) {
                 if (isDragging) {
@@ -168,6 +174,11 @@ public class CashFlowTracer {
         dashboardPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
         dashboardPanel.setBackground(Color.WHITE);
         frame.add(dashboardPanel, BorderLayout.CENTER);
+
+        // add data panels for Expense, Income and Total
+        addDataPanel("Expense", 0);
+        addDataPanel("Income", 1);
+        addDataPanel("Total", 2);
 
         // create and set up buttons panel
         
@@ -195,13 +206,77 @@ public class CashFlowTracer {
 
         // set up transaction table
         String[] columneNames = {"ID", "Type", "Description", "Amount"};
-        tableModel = new DefaultTableModel(columneNames, 0);
-        transactionTable = new JTable();
+        tableModel = new DefaultTableModel(columneNames, 20);
+        transactionTable = new JTable(tableModel);
+        configureTransactionTable();
+
         JScrollPane scrollPane = new JScrollPane(transactionTable);
+        dashboardPanel.add(scrollPane);
 
 
         frame.setVisible(true);
     }
-    
+
+    // Configure the appearance and behavior of the transaction table
+    private void configureTransactionTable() {
+
+        transactionTable.setBackground(new Color(236,240,241));
+        transactionTable.setRowHeight(30);
+        transactionTable.setShowGrid(false);
+        transactionTable.setBorder(null);
+        transactionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JTableHeader tableHeader = transactionTable.getTableHeader();
+        tableHeader.setForeground(Color.RED);
+        tableHeader.setFont(new Font("Arial", Font.BOLD, 22));
+    }
+
+    // Draw a data panel with specified title and value
+    private void drawDataPanel(Graphics g, String title, String value, int width, int height) {
+
+        // draw panel
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(new Color(255,255,255));
+        g2d.fillRoundRect(0, 0, width, height, 20, 20);
+        g2d.setColor(new Color(236,240,241));
+        g2d.fillRect(0, 0, width, 40);
+
+        // draw title
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("Arial", Font.BOLD, 20));
+        g2d.drawString(title, 20, 30);
+        
+        // draw value
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("Arial", Font.PLAIN, 16));
+        g2d.drawString(value, 20, 75);
+
+    }
+
+    // Add data panel to the dashboard panel
+    private void addDataPanel(String title, int index){
+        JPanel dataPanel = new JPanel(){
+
+            // Override paintComponent method to customize appearance
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (title.equals("Total")) {
+                    drawDataPanel(g, title, String.format("$%,.2f", totalAmount), getWidth(), getHeight());
+                } else {
+                    // temporary null arraylist
+                    drawDataPanel(g, title, "00", getWidth(), getHeight());
+
+                }
+            }
+
+        };
+
+        dataPanel.setLayout(new GridLayout(2,1));
+        dataPanel.setPreferredSize(new Dimension(170, 100));
+        dataPanel.setBackground(new Color(255,255,255));
+        dataPanel.setBorder(new LineBorder(new Color(149, 165,166), 2));
+        dashboardPanel.add(dataPanel);
+    }
     
 }
