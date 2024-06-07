@@ -10,7 +10,7 @@ import java.sql.SQLException;
 
 /**
  *
- * @author helio
+ * @author heliosaiden
  */
 public class DatabaseConnection {
 
@@ -18,7 +18,7 @@ public class DatabaseConnection {
     private static final String DB_NAME = "";
     private static final String USER = "root";
     private static final String PASSWORD = "";
-    
+
     // create a function to get a connection
     public static Connection getConnection() {
         Connection connection = null;

@@ -45,7 +45,7 @@ import javax.swing.table.TableCellRenderer;
  * @author helios_aiden
  */
 public class CashFlowTracer {
-    
+
     // Variables for the main frame and UI components
     private JFrame frame;
     private JPanel titleBar;
@@ -58,22 +58,23 @@ public class CashFlowTracer {
     private JButton removeTransactionButton;
     private JTable transactionTable;
     private DefaultTableModel tableModel;
-    
+
     // Varialbes to store the total amount
     private double totalAmount = 0.0;
     // ArrayList to store data panel values
-    private ArrayList<String> dataPanelValues = new ArrayList<>();
+    private ArrayList<String> dataPanelValues = new ArrayList<>(3);
     // Variables for form dragging
     private boolean isDragging = false;
     private Point mouseOffSet;
-    
-    // Program starts from here 
+    private int rowID = 0;
+
+    // Program starts from here
     public static void main(String[] args) {
         new CashFlowTracer();
-        
+
     }
 
-    // Constructor  
+    // Constructor
     public CashFlowTracer(){
         frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -99,7 +100,7 @@ public class CashFlowTracer {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 17));
         titleLabel.setBounds(10,0,250,30);
         titleBar.add(titleLabel);
-        
+
         // create and setup close label
         closeLabel = new JLabel("x");
         closeLabel.setForeground(Color.WHITE);
@@ -149,7 +150,7 @@ public class CashFlowTracer {
             }
         });
         titleBar.add(minimizLabel);
-        
+
         // mouse listener for window dragging
         titleBar.addMouseListener(new MouseAdapter() {
 
@@ -191,7 +192,7 @@ public class CashFlowTracer {
         addDataPanel("Total", 2);
 
         // create and set up buttons panel
-        
+
         addTransactionButton = new JButton("Add Transaction");
         addTransactionButton.setBackground(new Color(41,28,185));
         addTransactionButton.setForeground(Color.WHITE);
@@ -219,8 +220,8 @@ public class CashFlowTracer {
 
         // set up transaction table
         String[] columneNames = {"ID", "Type", "Description", "Amount"};
-        tableModel = new DefaultTableModel(columneNames, 20);
-        
+        tableModel = new DefaultTableModel(columneNames, 0);
+
         transactionTable = new JTable(tableModel);
         configureTransactionTable();
 
@@ -239,28 +240,36 @@ public class CashFlowTracer {
         JDialog dialog = new JDialog(frame, "Add transaction", true);
         dialog.setSize(350, 250);
         dialog.setLocationRelativeTo(frame);
-        
+
         // Create a Jpanel to hold the components in a grid layout
         JPanel dialogPanel = new JPanel(new GridLayout(4,0,10,10));
         dialogPanel.setBackground(Color.LIGHT_GRAY);
         dialogPanel.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
-        
+
         // Create & configure components for transaction input
         JLabel typeLabel = new JLabel("Type:");
-        JComboBox<String> typeComboBox = new JComboBox<>(new String[]{"Expends", "Income"});
+        JComboBox<String> typeComboBox = new JComboBox<>(new String[]{ "Income", "Expends"});
         typeComboBox.setBackground(Color.WHITE);
         JLabel descriptionLabel = new JLabel("Description:");
         JTextField descriptionTextField = new JTextField();
-        
+
         JLabel amountLabel = new JLabel("Amount:");
         JTextField amountTextField = new JTextField();
 
+        // Style add button
         JButton addButton = new JButton("Add");
         addButton.setBackground(new Color(41,128,185));
         addButton.setForeground(Color.WHITE);
         addButton.setFocusPainted(false);
         addButton.setBorderPainted(false);
         addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // currently debugging addTransactionButton
+
+        addButton.addActionListener((e) -> {
+            addTransaction(typeComboBox, descriptionTextField, amountTextField);
+            dialog.setVisible(false);
+        });
 
         // Add components to dialog panel
         dialogPanel.add(typeLabel);
@@ -271,9 +280,61 @@ public class CashFlowTracer {
         dialogPanel.add(amountTextField);
         dialogPanel.add(new JLabel()); // Empty label for spacing
         dialogPanel.add(addButton);
-        
+
         dialog.add(dialogPanel);
         dialog.setVisible(true);
+    }
+
+    // Add new transaction
+    private void addTransaction(JComboBox<String> typeComboBox, JTextField descriptionField, JTextField amountField) {
+        String type = (String) typeComboBox.getSelectedItem();
+        String description = descriptionField.getText();
+        String amount = amountField.getText();
+
+        // Parse amount String to a double value
+        double newAmount = Double.parseDouble(amount.replace("$","").replace(" ","").replace(",",""));
+
+        // Update the total amount based on the transaction type
+        if (type.equals("Income")){
+            totalAmount += newAmount;
+        } else {
+            totalAmount -= newAmount;
+        }
+
+        // Update the total amount displayed on dashboard
+        JPanel totalPanel = (JPanel) dashboardPanel.getComponent(2);
+        totalPanel.repaint();
+
+        // determine the index of the data panel to update based on the transaction type
+        int indexToUpdate = type.equals("Income") ? 1 : 0;
+
+
+        // retrieve the current value of data panel
+        String currentValue = dataPanelValues.get(indexToUpdate);
+
+        // parse current amount string to double value
+        double currentAmount = Double.parseDouble(currentValue.replace("$","").replace(" ","").replace(",",""));
+
+        // calculate the updated amount based on the transaction type
+
+        double updatedAmount = currentAmount + (type.equals("Income") ? newAmount : -newAmount);
+
+        // update the data panel with new amount
+
+        dataPanelValues.set(indexToUpdate, String.format("$%,.2f", updatedAmount));
+        JPanel dataPanel = (JPanel) dashboardPanel.getComponent(indexToUpdate);
+        dataPanel.repaint();
+
+        // Should Connection class be here ready for db connection
+        // Make sure to have try catch statement
+        // *
+        // *
+        // *
+
+        DefaultTableModel table = (DefaultTableModel) transactionTable.getModel();
+        Transaction transaction = new Transaction(rowID++, type, description, newAmount);
+        table.addRow(new Object[]{transaction.getId(), transaction.getType(), transaction.getDescription(), transaction.getAmount()});
+
     }
 
     // Configure the appearance and behavior of the transaction table
@@ -312,7 +373,7 @@ public class CashFlowTracer {
         g2d.setColor(Color.BLACK);
         g2d.setFont(new Font("Arial", Font.BOLD, 20));
         g2d.drawString(title, 20, 30);
-        
+
         // draw value
         g2d.setColor(Color.BLACK);
         g2d.setFont(new Font("Arial", Font.PLAIN, 16));
@@ -322,6 +383,8 @@ public class CashFlowTracer {
 
     // Add data panel to the dashboard panel
     private void addDataPanel(String title, int index){
+        dataPanelValues.add("00");
+
         JPanel dataPanel = new JPanel(){
 
             // Override paintComponent method to customize appearance
@@ -331,9 +394,7 @@ public class CashFlowTracer {
                 if (title.equals("Total")) {
                     drawDataPanel(g, title, String.format("$%,.2f", totalAmount), getWidth(), getHeight());
                 } else {
-                    // temporary null arraylist
-                    drawDataPanel(g, title, "00", getWidth(), getHeight());
-
+                    drawDataPanel(g, title, dataPanelValues.get(index), getWidth(), getHeight());
                 }
             }
 
@@ -345,15 +406,18 @@ public class CashFlowTracer {
         dataPanel.setBorder(new LineBorder(new Color(149, 165,166), 2));
         dashboardPanel.add(dataPanel);
     }
-    
+
 }
 
 
 // Custom table header renderer with gradient background
 class GradientHeaderRenderer extends JLabel implements TableCellRenderer{
 
-    private final Color startColor = new Color(192,192,192);
-    private final Color endColor = new Color(50,50,50);
+    // private final Color startColor = new Color(192,192,192);
+    // private final Color endColor = new Color(50,50,50);
+
+    private final Color startColor = Color.BLUE;
+    private final Color endColor = Color.CYAN;
 
     public GradientHeaderRenderer() {
         setOpaque(false);
@@ -412,7 +476,7 @@ class CustomScrollBarUI extends BasicScrollBarUI {
         g.setColor(thumbColor);
         g.fillRect(thumbBounds.x, thumbBounds.y, thumbBounds.width, thumbBounds.height);
     }
-    
+
     @Override
     protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds){
         g.setColor(trackColor);
